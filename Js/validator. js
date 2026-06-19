@@ -1,0 +1,36 @@
+// validator.js
+// Implements FR-009, FR-010, FR-011 and NFRs 1.5, 1.6, 1.7, 1.8.
+// Takes a student's submitted sequence (array of tech names) and
+// returns a detailed ValidationReport.
+
+// ── Match a typed name to a tech in the DB (case-insensitive partial match) ───
+function findTechByName(name) {
+  const clean = name.trim().toLowerCase();
+  return DB.technologies.find(t =>
+    t.name.toLowerCase() === clean ||
+    t.name.toLowerCase().includes(clean) ||
+    clean.includes(t.name.toLowerCase().split(" ")[0])
+  ) || null;
+}
+
+// ── FR-010: Core validation logic ─────────────────────────────────────────────
+// Returns a ValidationReport object with entries for every tech in the submitted list.
+function validateSequence(rawLines) {
+  // FR-009: Parse the submitted plan — one technology per line
+  const lines = rawLines
+    .split("\n")
+    .map(l => l.replace(/^\d+[\.\)]\s*/, "").trim()) // strip "1." or "1)" numbering
+    .filter(l => l.length > 0);
+
+  const entries = [];
+  const errors = [];
+  const warnings = [];
+  const valids = [];
+
+  // Map each line to a tech (or mark as unrecognized)
+  const resolved = lines.map(line => ({
+    raw: line,
+    tech: findTechByName(line),
+  }));
+
+  // The IDs in submission order — used for ordering checks
